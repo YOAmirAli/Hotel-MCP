@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users (extends Guest concept to include staff/admin)
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique @db.VarChar(255)
+  password      String   @db.VarChar(255) // hashed
+  firstName     String   @map("first_name") @db.VarChar(100)
+  lastName      String   @map("last_name") @db.VarChar(100)
+  phone         String?  @db.VarChar(20)
+  role          String   @default("guest") // guest, hotel_manager, staff, admin
+  hotelId       Int?     @map("hotel_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  hotel         Hotel?   @relation(fields: [hotelId], references: [id])
+  bookings      Booking[]
+  hotelRegistrations HotelRegistration[] @relation("managerRegistrations")
+
+  @@map("users")
+}
+
+// Hotels
+model Hotel {
+  id              Int      @id @default(autoincrement())
+  name            String   @db.VarChar(200)
+  description     String?  @db.Text
+  address         String?  @db.Text
+  city            String?  @db.VarChar(100)
+  country         String?  @db.VarChar(100)
+  phone           String?  @db.VarChar(20)
+  email           String?  @db.VarChar(255)
+  website         String?  @db.VarChar(255)
+  imageUrl        String?  @map("image_url") @db.Text
+  status          String   @default("pending") // pending, approved, rejected
+  approvedAt      DateTime? @map("approved_at")
+  approvedBy      Int?     @map("approved_by")
+  registrationId  Int      @unique @map("registration_id") // links to registration request
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  users           User[]
+  roomTypes       RoomType[]
+  registration    HotelRegistration @relation(fields: [registrationId], references: [id])
+  approvedByUser  User?   @relation("ApprovedHotels", fields: [approvedBy], references: [id])
+
+  @@map("hotels")
+}
+
+// Hotel Registration Requests
+model HotelRegistration {
+  id              Int      @id @default(autoincrement())
+  hotelName       String   @map("hotel_name") @db.VarChar(200)
+  managerEmail    String   @map("manager_email") @db.VarChar(255)
+  managerFirstName String  @map("manager_first_name") @db.VarChar(100)
+  managerLastName String   @map("manager_last_name") @db.VarChar(100)
+  managerPhone    String?  @map("manager_phone") @db.VarChar(20)
+  hotelAddress    String?  @map("hotel_address") @db.Text
+  hotelCity       String?  @map("hotel_city") @db.VarChar(100)
+  hotelCountry    String?  @map("hotel_country") @db.VarChar(100)
+  hotelPhone      String?  @map("hotel_phone") @db.VarChar(20)
+  hotelEmail      String?  @map("hotel_email") @db.VarChar(255)
+  description     String?  @db.Text
+  status          String   @default("pending") // pending, approved, rejected
+  adminNotes      String?  @map("admin_notes") @db.Text
+  submittedAt     DateTime @default(now()) @map("submitted_at")
+  processedAt     DateTime? @map("processed_at")
+  processedBy     Int?     @map("processed_by")
+  hotelId         Int?     @map("hotel_id") // After approval, links to created hotel
+  managerId       Int?     @map("manager_id") // Links to manager user
+  
+  hotel           Hotel?   @relation(fields: [hotelId], references: [id])
+  manager         User?    @relation("managerRegistrations", fields: [managerId], references: [id])
+  processedByUser User?    @relation("ProcessedRegistrations", fields: [processedBy], references: [id])
+
+  @@map("hotel_registrations")
+}
+
+// Room Types (now belongs to a hotel)
+model RoomType {
+  id          Int      @id @default(autoincrement())
+  hotelId     Int      @map("hotel_id")
+  name        String   @db.VarChar(100)
+  description String?
+  basePrice   Float    @map("base_price")
+  capacity    Int      @default(2)
+  amenities   Json?
+  imageUrl    String?  @map("image_url") @db.Text
+  rooms       Room[]
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+
+  @@map("room_types")
+}
+
+// Individual rooms
+model Room {
+  id           Int      @id @default(autoincrement())
+  roomTypeId   Int      @map("room_type_id")
+  roomNumber   String   @unique @map("room_number") @db.VarChar(10)
+  floor        Int
+  status       String   @default("available")
+  bookings     Booking[]
+  housekeepings Housekeeping[]
+  roomType     RoomType @relation(fields: [roomTypeId], references: [id])
+
+  @@map("rooms")
+}
+
+// Guests (now links to User)
+model Guest {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     @map("user_id") // Link to user account
+  email       String   @unique @db.VarChar(255)
+  firstName   String   @map("first_name") @db.VarChar(100)
+  lastName    String   @map("last_name") @db.VarChar(100)
+  phone       String?  @db.VarChar(20)
+  preferences Json?
+  bookings    Booking[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("guests")
+}
+
+// Bookings
+model Booking {
+  id            Int      @id @default(autoincrement())
+  guestId       Int      @map("guest_id")
+  roomId        Int      @map("room_id")
+  checkIn       DateTime @map("check_in") @db.Date
+  checkOut      DateTime @map("check_out") @db.Date
+  status        String   @default("pending")
+  totalAmount   Float    @map("total_amount")
+  paymentStatus String   @default("unpaid") @map("payment_status")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  guest         Guest    @relation(fields: [guestId], references: [id])
+  room          Room     @relation(fields: [roomId], references: [id])
+  payments      Payment[]
+  housekeepings Housekeeping[]
+
+  @@map("bookings")
+}
+
+// Payments
+model Payment {
+  id                   Int      @id @default(autoincrement())
+  bookingId            Int      @map("booking_id")
+  stripePaymentIntentId String  @unique @map("stripe_payment_intent_id") @db.VarChar(255)
+  amount               Float
+  status               String   @default("pending")
+  paidAt               DateTime? @map("paid_at")
+  booking              Booking  @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+// Housekeeping
+model Housekeeping {
+  id         Int      @id @default(autoincrement())
+  roomId     Int      @map("room_id")
+  assignedTo String?  @map("assigned_to") @db.VarChar(100)
+  status     String   @default("pending")
+  startTime  DateTime? @map("start_time")
+  endTime    DateTime? @map("end_time")
+  notes      String?  @db.Text
+  room       Room     @relation(fields: [roomId], references: [id])
+  bookingId  Int?     @map("booking_id")
+  booking    Booking? @relation(fields: [bookingId], references: [id])
+
+  @@map("housekeeping")
+}
