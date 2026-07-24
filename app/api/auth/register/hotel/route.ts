@@ -64,10 +64,12 @@ export async function POST(request: NextRequest) {
       return { user, registrationRequest }
     })
 
+    const role = result.user.role as 'guest' | 'hotel_manager' | 'staff' | 'admin'
+
     const token = signToken({
       userId: result.user.id,
       email: result.user.email,
-      role: result.user.role,
+      role,
       hotelId: null,
     })
 
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
           email: result.user.email,
           firstName: result.user.firstName,
           lastName: result.user.lastName,
-          role: result.user.role,
+          role,
           hotelId: null,
         },
         registrationRequest: {

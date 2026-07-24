@@ -18,7 +18,12 @@ function SuccessContent() {
       <h2 className="font-display-lg text-display-lg-mobile text-primary mb-4">Booking Confirmed!</h2>
       <p className="text-on-surface-variant mb-8">
         Your sanctuary awaits. A confirmation email has been sent to your inbox with all reservation details.
-        {bookingId && <br /><span className="text-sm">Booking Reference: #{bookingId}</span>}
+        {bookingId ? (
+          <>
+            <br />
+            <span className="text-sm">Booking Reference: #{bookingId}</span>
+          </>
+        ) : null}
       </p>
       <Link
         href="/"

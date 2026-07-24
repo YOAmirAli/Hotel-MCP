@@ -21,9 +21,8 @@ export async function PATCH(
     return errorResponse(parsed.error.issues[0]?.message || 'Invalid input', 400)
   }
 
-  const registrationRequest = await prisma.hotelRegistrationRequest.findUnique({
+  const registrationRequest = await prisma.hotelRegistration.findUnique({
     where: { id: requestId },
-    include: { applicant: true },
   })
 
   if (!registrationRequest) return errorResponse('Registration request not found', 404)
@@ -32,62 +31,59 @@ export async function PATCH(
   }
 
   if (parsed.data.status === 'rejected') {
-    const updated = await prisma.hotelRegistrationRequest.update({
+    const updated = await prisma.hotelRegistration.update({
       where: { id: requestId },
       data: {
         status: 'rejected',
         adminNotes: parsed.data.adminNotes,
-        reviewedById: auth.userId,
-        reviewedAt: new Date(),
+        processedBy: auth.userId,
+        processedAt: new Date(),
       },
     })
     return jsonResponse({ request: updated, message: 'Registration rejected' })
   }
 
-  // Approve: create hotel shell and link manager
-  let slug = slugify(registrationRequest.hotelName)
-  const slugExists = await prisma.hotel.findUnique({ where: { slug } })
-  if (slugExists) slug = `${slug}-${Date.now()}`
+  const hotelSlug = slugify(registrationRequest.hotelName)
 
   const result = await prisma.$transaction(async (tx) => {
     const hotel = await tx.hotel.create({
       data: {
         name: registrationRequest.hotelName,
-        slug,
-        address: registrationRequest.address,
-        city: registrationRequest.city,
-        country: registrationRequest.country,
-        phone: registrationRequest.phone,
         description: registrationRequest.description,
-        status: 'pending_profile',
+        address: registrationRequest.hotelAddress,
+        city: registrationRequest.hotelCity,
+        country: registrationRequest.hotelCountry,
+        phone: registrationRequest.hotelPhone,
+        email: registrationRequest.hotelEmail,
+        status: 'pending',
+        registrationId: requestId,
       },
     })
 
-    await tx.user.update({
-      where: { id: registrationRequest.applicantId },
-      data: { hotelId: hotel.id },
-    })
+    if (registrationRequest.managerId) {
+      await tx.user.update({
+        where: { id: registrationRequest.managerId },
+        data: { hotelId: hotel.id },
+      })
+    }
 
-    const updatedRequest = await tx.hotelRegistrationRequest.update({
+    const updatedRequest = await tx.hotelRegistration.update({
       where: { id: requestId },
       data: {
         status: 'approved',
         adminNotes: parsed.data.adminNotes,
-        reviewedById: auth.userId,
-        reviewedAt: new Date(),
+        processedBy: auth.userId,
+        processedAt: new Date(),
         hotelId: hotel.id,
-      },
-      include: {
-        applicant: { select: { id: true, email: true, firstName: true, lastName: true } },
-        hotel: true,
       },
     })
 
-    return updatedRequest
+    return { hotel, request: updatedRequest, slug: hotelSlug }
   })
 
   return jsonResponse({
-    request: result,
+    request: result.request,
+    hotel: result.hotel,
     message: 'Registration approved. The hotel manager can now complete their hotel profile and add rooms.',
   })
 }

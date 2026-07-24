@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyToken } from './lib/auth/jwt'
+import { verifyToken } from '@/lib/auth/jwt'
 
 // Routes that don't require authentication
 const publicPaths = ['/', '/rooms', '/booking', '/api/auth/login', '/api/auth/register', '/api/auth/register-hotel', '/api/rooms/availability']

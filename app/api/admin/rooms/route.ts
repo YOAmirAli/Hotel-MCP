@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const roomTypes = await prisma.roomType.findMany({
     where: hotelId ? { hotelId: Number(hotelId) } : undefined,
     include: {
-      hotel: { select: { id: true, name: true, slug: true } },
+      hotel: { select: { id: true, name: true } },
       rooms: true,
     },
     orderBy: { name: 'asc' },

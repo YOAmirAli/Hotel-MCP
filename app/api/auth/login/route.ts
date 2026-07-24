@@ -23,11 +23,13 @@ export async function POST(request: NextRequest) {
       return errorResponse('Invalid email or password', 401)
     }
 
+    const role = user.role as 'guest' | 'hotel_manager' | 'staff' | 'admin'
+
     const token = signToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
-      hotelId: user.hotelId,
+      role,
+      hotelId: user.hotelId ?? undefined,
     })
 
     const response = jsonResponse({
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
+        role,
         hotelId: user.hotelId,
       },
     })

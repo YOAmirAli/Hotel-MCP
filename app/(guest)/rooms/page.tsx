@@ -17,6 +17,10 @@ interface Room {
     capacity: number
     amenities: string[]
     imageUrl: string | null
+    hotel: {
+      id: number
+      name: string
+    }
   }
   pricePerNight: number
   totalPrice: number
@@ -63,35 +67,35 @@ export default function RoomsPage() {
   }
 
   return (
-    <div className="px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+    <div className="px-4 md:px-10 max-w-7xl mx-auto">
       {/* Filter Bar */}
       <section className="mb-12">
-        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 shadow-sm">
+        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
             <div className="space-y-2">
-              <label className="block font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Check‑in</label>
+              <label className="block text-sm font-semibold uppercase tracking-wider text-on-surface-variant">Check‑in</label>
               <input
                 type="date"
                 value={checkIn}
                 onChange={(e) => setCheckIn(e.target.value)}
-                className="w-full bg-surface-container-low border border-outline-variant/50 rounded-lg px-4 py-2.5 font-label-md focus:border-secondary transition-colors"
+                className="w-full bg-surface-container-low border border-outline-variant/50 rounded-lg px-4 py-2.5 text-sm focus:border-secondary transition-colors"
               />
             </div>
             <div className="space-y-2">
-              <label className="block font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Check‑out</label>
+              <label className="block text-sm font-semibold uppercase tracking-wider text-on-surface-variant">Check‑out</label>
               <input
                 type="date"
                 value={checkOut}
                 onChange={(e) => setCheckOut(e.target.value)}
-                className="w-full bg-surface-container-low border border-outline-variant/50 rounded-lg px-4 py-2.5 font-label-md focus:border-secondary transition-colors"
+                className="w-full bg-surface-container-low border border-outline-variant/50 rounded-lg px-4 py-2.5 text-sm focus:border-secondary transition-colors"
               />
             </div>
             <div className="space-y-2">
-              <label className="block font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Guests</label>
+              <label className="block text-sm font-semibold uppercase tracking-wider text-on-surface-variant">Guests</label>
               <select
                 value={guests}
                 onChange={(e) => setGuests(parseInt(e.target.value))}
-                className="w-full bg-surface-container-low border border-outline-variant/50 rounded-lg px-4 py-2.5 font-label-md focus:border-secondary transition-colors"
+                className="w-full bg-surface-container-low border border-outline-variant/50 rounded-lg px-4 py-2.5 text-sm focus:border-secondary transition-colors"
               >
                 <option value="1">1 Adult</option>
                 <option value="2">2 Adults</option>
@@ -101,7 +105,7 @@ export default function RoomsPage() {
             </div>
             <button
               onClick={fetchRooms}
-              className="w-full bg-secondary text-on-primary py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-secondary text-white py-2.5 rounded-lg text-sm font-medium hover:bg-primary transition-colors flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined">tune</span> Apply Filters
             </button>
@@ -111,9 +115,9 @@ export default function RoomsPage() {
 
       {/* Room Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl overflow-hidden">
+            <div key={i} className="bg-white border border-outline-variant/30 rounded-xl overflow-hidden">
               <div className="skeleton-pulse aspect-[4/3] w-full" />
               <div className="p-6 space-y-4">
                 <div className="skeleton-pulse h-6 w-3/4 rounded" />
@@ -127,14 +131,14 @@ export default function RoomsPage() {
             </div>
           ))}
         </div>
-      ) : rooms.length === 0 ? (
+      ) : !rooms || rooms.length === 0 ? (
         <div className="py-32 text-center max-w-md mx-auto">
           <span className="material-symbols-outlined text-[64px] text-outline-variant mb-6">bed</span>
-          <h2 className="font-headline-md text-headline-md text-primary mb-4">No Rooms Available</h2>
+          <h2 className="text-3xl text-primary mb-4">No Rooms Available</h2>
           <p className="text-on-surface-variant mb-8">Try adjusting your dates or number of guests.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {rooms.map((room) => (
             <RoomCard
               key={room.id}

@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server'
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -8,9 +10,9 @@ export function slugify(text: string): string {
 }
 
 export function jsonResponse(data: unknown, status = 200) {
-  return Response.json(data, { status })
+  return NextResponse.json(data, { status })
 }
 
 export function errorResponse(message: string, status = 400) {
-  return Response.json({ error: message }, { status })
+  return NextResponse.json({ error: message }, { status })
 }

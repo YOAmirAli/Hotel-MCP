@@ -11,9 +11,10 @@ interface Registration {
   managerLastName: string
   status: string
   submittedAt: string
-  description: string
-  adminNotes: string
-  manager: { firstName: string; lastName: string; email: string }
+  description?: string
+  adminNotes?: string
+  hotelAddress?: string
+  manager?: { firstName: string; lastName: string; email: string }
 }
 
 export default function AdminRegistrations() {

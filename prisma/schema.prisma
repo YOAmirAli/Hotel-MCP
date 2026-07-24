@@ -19,10 +19,12 @@ model User {
   hotelId       Int?     @map("hotel_id")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  hotel         Hotel?   @relation(fields: [hotelId], references: [id])
-  bookings      Booking[]
-  hotelRegistrations HotelRegistration[] @relation("managerRegistrations")
+
+  hotel                  Hotel?               @relation("HotelStaff", fields: [hotelId], references: [id])
+  hotelRegistrations     HotelRegistration[]  @relation("managerRegistrations")
+  approvedHotels         Hotel[]              @relation("ApprovedHotels")
+  processedRegistrations HotelRegistration[]  @relation("ProcessedRegistrations")
+  guest                  Guest?
 
   @@map("users")
 }
@@ -45,11 +47,11 @@ model Hotel {
   registrationId  Int      @unique @map("registration_id") // links to registration request
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
-  
-  users           User[]
+
+  users           User[]              @relation("HotelStaff")
   roomTypes       RoomType[]
-  registration    HotelRegistration @relation(fields: [registrationId], references: [id])
-  approvedByUser  User?   @relation("ApprovedHotels", fields: [approvedBy], references: [id])
+  registration    HotelRegistration   @relation("HotelFromRegistration", fields: [registrationId], references: [id])
+  approvedByUser  User?               @relation("ApprovedHotels", fields: [approvedBy], references: [id])
 
   @@map("hotels")
 }
@@ -73,10 +75,10 @@ model HotelRegistration {
   submittedAt     DateTime @default(now()) @map("submitted_at")
   processedAt     DateTime? @map("processed_at")
   processedBy     Int?     @map("processed_by")
-  hotelId         Int?     @map("hotel_id") // After approval, links to created hotel
+  hotelId         Int?     @unique @map("hotel_id") // After approval, links to created hotel
   managerId       Int?     @map("manager_id") // Links to manager user
-  
-  hotel           Hotel?   @relation(fields: [hotelId], references: [id])
+
+  hotel           Hotel?   @relation("HotelFromRegistration")
   manager         User?    @relation("managerRegistrations", fields: [managerId], references: [id])
   processedByUser User?    @relation("ProcessedRegistrations", fields: [processedBy], references: [id])
 
@@ -116,7 +118,7 @@ model Room {
 // Guests (now links to User)
 model Guest {
   id          Int      @id @default(autoincrement())
-  userId      Int?     @map("user_id") // Link to user account
+  userId      Int?     @unique @map("user_id") // Link to user account
   email       String   @unique @db.VarChar(255)
   firstName   String   @map("first_name") @db.VarChar(100)
   lastName    String   @map("last_name") @db.VarChar(100)
@@ -125,7 +127,7 @@ model Guest {
   bookings    Booking[]
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-  
+
   user        User?    @relation(fields: [userId], references: [id])
 
   @@map("guests")
@@ -153,13 +155,13 @@ model Booking {
 
 // Payments
 model Payment {
-  id                   Int      @id @default(autoincrement())
-  bookingId            Int      @map("booking_id")
-  stripePaymentIntentId String  @unique @map("stripe_payment_intent_id") @db.VarChar(255)
-  amount               Float
-  status               String   @default("pending")
-  paidAt               DateTime? @map("paid_at")
-  booking              Booking  @relation(fields: [bookingId], references: [id])
+  id                    Int      @id @default(autoincrement())
+  bookingId             Int      @map("booking_id")
+  stripePaymentIntentId String   @unique @map("stripe_payment_intent_id") @db.VarChar(255)
+  amount                Float
+  status                String   @default("pending")
+  paidAt                DateTime? @map("paid_at")
+  booking               Booking  @relation(fields: [bookingId], references: [id])
 
   @@map("payments")
 }

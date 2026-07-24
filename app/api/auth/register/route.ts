@@ -30,11 +30,13 @@ export async function POST(request: NextRequest) {
       data: { email, password: hashed, firstName, lastName, role },
     })
 
+    const userRole = user.role as 'guest' | 'hotel_manager' | 'staff' | 'admin'
+
     const token = signToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
-      hotelId: user.hotelId,
+      role: userRole,
+      hotelId: user.hotelId ?? undefined,
     })
 
     const response = jsonResponse(
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role,
+          role: userRole,
           hotelId: user.hotelId,
         },
       },
