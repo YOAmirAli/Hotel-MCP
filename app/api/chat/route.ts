@@ -1,70 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { callMCPTool } from '@/lib/mcp/server'
+import { mcpTools } from '@/lib/mcp/server'
 
 export async function POST(request: NextRequest) {
   try {
     const { message, history = [] } = await request.json()
 
-    // Detect if user wants to perform an action
-    const actionPatterns: Record<string, { tool: string; extractParams: (text: string) => any }> = {
-      'book|reserve': {
-        tool: 'create_booking',
-        extractParams: (text) => {
-          // Simple extraction – would use NLP in production
-          const dates = text.match(/\d{4}-\d{2}-\d{2}/g)
-          return {
-            checkIn: dates?.[0] || new Date().toISOString().split('T')[0],
-            checkOut: dates?.[1] || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-            roomId: 1,
-            guestName: 'Guest',
-            guestEmail: 'guest@example.com',
-          }
-        },
-      },
-      'cancel|remove booking': {
-        tool: 'cancel_booking',
-        extractParams: (text) => {
-          const id = text.match(/\d+/)
-          return { bookingId: id ? parseInt(id[0]) : 1 }
-        },
-      },
-      'available|free room': {
-        tool: 'check_availability',
-        extractParams: (text) => {
-          const dates = text.match(/\d{4}-\d{2}-\d{2}/g)
-          return {
-            checkIn: dates?.[0] || new Date().toISOString().split('T')[0],
-            checkOut: dates?.[1] || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-            guests: 2,
-          }
-        },
-      },
-    }
-
-    let response = ''
+    // Detect which tool to use
+    let toolResult = null
     let toolUsed = false
 
-    // Check if message matches any action pattern
-    for (const [pattern, config] of Object.entries(actionPatterns)) {
-      if (new RegExp(pattern, 'i').test(message)) {
-        try {
-          const params = config.extractParams(message)
-          const result = await callMCPTool(config.tool, params)
-          toolUsed = true
-          response = `✅ I've ${config.tool === 'create_booking' ? 'created a booking' : 
-            config.tool === 'cancel_booking' ? 'cancelled the booking' : 
-            'checked availability'} for you:\n\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\``
-          break
-        } catch (error: any) {
-          response = `❌ I couldn't complete that action: ${error.message}`
-          break
-        }
-      }
+    // Check for availability request
+    if (/available|free room|show rooms|find room/i.test(message)) {
+      const dates = message.match(/\d{4}-\d{2}-\d{2}/g)
+      toolResult = await mcpTools.checkAvailability(
+        dates?.[0] || new Date().toISOString().split('T')[0],
+        dates?.[1] || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+        2
+      )
+      toolUsed = true
     }
 
-    // If no action was taken, use Claude for general chat
-    if (!toolUsed) {
-      const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    // Check for booking request
+    if (/book|reserve|i want to book|make a booking/i.test(message)) {
+      const dates = message.match(/\d{4}-\d{2}-\d{2}/g)
+      const name = message.match(/for\s+([a-zA-Z]+\s+[a-zA-Z]+)/i)
+      toolResult = await mcpTools.createBooking({
+        roomId: 1, // Would need to extract from context
+        checkIn: dates?.[0] || new Date().toISOString().split('T')[0],
+        checkOut: dates?.[1] || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+        guestName: name?.[1] || 'Guest',
+        guestEmail: 'guest@example.com',
+      })
+      toolUsed = true
+    }
+
+    // Check for cancellation
+    if (/cancel|remove booking/i.test(message)) {
+      const id = message.match(/\d+/)
+      toolResult = await mcpTools.cancelBooking(id ? parseInt(id[0]) : 1)
+      toolUsed = true
+    }
+
+    // If tool was used, return result directly
+    if (toolUsed) {
+      return NextResponse.json({
+        success: true,
+        reply: `✅ I've completed that action:\n\`\`\`json\n${JSON.stringify(toolResult, null, 2)}\n\`\`\``,
+        toolUsed: true,
+      })
+    }
+
+    // Otherwise, call Claude API if configured
+    if (process.env.CLAUDE_API_KEY) {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,9 +62,10 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           model: 'claude-3-haiku-20240307',
           max_tokens: 1024,
-          system: `You are a helpful hotel front-desk assistant. 
+          system: `You are a helpful hotel front-desk assistant for LuxeStay.
                    You can help guests with check-in, check-out, amenities, policies, and bookings.
-                   Use the MCP tools when users want to book, cancel, or check availability.`,
+                   If a user wants to book, cancel, or check availability, let them know you can help with that.
+                   Keep responses warm, professional, and concise.`,
           messages: [
             ...(history || []).map((h: any) => ({
               role: h.role,
@@ -87,14 +76,20 @@ export async function POST(request: NextRequest) {
         }),
       })
 
-      const data = await claudeResponse.json()
-      response = data.content?.[0]?.text || "I'm sorry, I couldn't process that request."
+      const data = await response.json()
+      const reply = data.content?.[0]?.text || "I'm sorry, I couldn't process that request."
+
+      return NextResponse.json({
+        success: true,
+        reply,
+        toolUsed: false,
+      })
     }
 
     return NextResponse.json({
       success: true,
-      reply: response,
-      toolUsed,
+      reply: "Welcome to LuxeStay! I can help you check room availability, create bookings, or manage reservations. How may I assist you today?",
+      toolUsed: false,
     })
   } catch (error) {
     console.error('Chat error:', error)

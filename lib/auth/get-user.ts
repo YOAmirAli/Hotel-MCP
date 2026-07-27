@@ -19,7 +19,7 @@ export function getAuthFromRequest(request: NextRequest): JwtPayload | null {
       userId: Number(headerUserId),
       email: request.headers.get('x-user-email') || '',
       role: headerRole as JwtPayload['role'],
-      hotelId: headerHotelId ? Number(headerHotelId) : null,
+      hotelId: headerHotelId ? Number(headerHotelId) : undefined,
     }
   }
 

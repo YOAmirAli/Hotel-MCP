@@ -9,7 +9,7 @@ async function getManagerContext(auth: { userId: number; hotelId?: number | null
     where: { id: auth.userId },
     include: {
       hotel: true,
-      registrationRequests: { orderBy: { createdAt: 'desc' }, take: 1 },
+      hotelRegistrations: { orderBy: { submittedAt: 'desc' }, take: 1 },
     },
   })
 
@@ -17,7 +17,7 @@ async function getManagerContext(auth: { userId: number; hotelId?: number | null
     return { error: 'Forbidden', status: 403 as const, user: null }
   }
 
-  const latestRequest = user.registrationRequests[0]
+  const latestRequest = user.hotelRegistrations[0]
   const isApproved = latestRequest?.status === 'approved' && user.hotelId
 
   return { error: null, status: 200 as const, user, isApproved: Boolean(isApproved) }
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       lastName: ctx.user.lastName,
       hotelId: ctx.user.hotelId,
     },
-    registrationRequest: ctx.user.registrationRequests[0] ?? null,
+    registrationRequest: ctx.user.hotelRegistrations[0] ?? null,
     hotel: ctx.user.hotel,
     canManageListing: ctx.isApproved,
   })

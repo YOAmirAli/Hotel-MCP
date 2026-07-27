@@ -1,99 +1,126 @@
-'use client'
+"use client"
 
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card } from '@/components/ui/Card'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
 
 export default function LoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') || '/'
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ email: '', password: '' })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ email, password }),
       })
       const data = await res.json()
 
-      // Support both response shapes: { user, token } and { success, data: { token } }
-      const token = data.token ?? data.data?.token
-      const role = data.user?.role ?? data.data?.role ?? (() => {
-        try {
-          return JSON.parse(atob(token.split('.')[1])).role
-        } catch {
-          return null
+      if (data.success) {
+        localStorage.setItem('token', data.data.token)
+        document.cookie = `token=${data.data.token}; path=/; max-age=604800`
+        
+        const payload = JSON.parse(atob(data.data.token.split('.')[1]))
+        if (payload.role === 'admin') {
+          router.push('/admin')
+        } else if (payload.role === 'hotel_manager') {
+          router.push('/manager')
+        } else if (payload.role === 'staff') {
+          router.push('/staff/dashboard')
+        } else {
+          router.push('/')
         }
-      })()
-
-      if (!res.ok && !data.success) {
+      } else {
         setError(data.error || 'Login failed')
-        return
       }
-
-      // Persist token
-      if (token) {
-        localStorage.setItem('token', token)
-        document.cookie = `token=${token}; path=/; max-age=604800`
-      }
-
-      if (role === 'admin') router.push('/admin')
-      else if (role === 'hotel_manager') router.push('/manager')
-      else if (role === 'staff') router.push('/staff/dashboard')
-      else router.push(redirect)
     } catch {
-      setError('Login failed. Please try again.')
+      setError('Network error, please try again')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <Link href="/" className="text-primary hover:underline text-sm mb-6 inline-block">
-          ← Back to LuxeStay
-        </Link>
-        <Card title="Sign In" description="Access your LuxeStay account">
-          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <Input
-              label="Email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-            />
-            <Input
-              label="Password"
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-            />
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" loading={loading} className="w-full">
-              Sign In
-            </Button>
-          </form>
-          <p className="text-sm text-on-surface-variant mt-4 text-center">
-            Hotel owner?{' '}
-            <Link href="/register-hotel" className="text-primary hover:underline">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-surface-container-low to-surface-container py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-surface-container-lowest rounded-2xl shadow-xl p-8 border border-outline-variant/20">
+        <div>
+          <Link href="/" className="block text-center">
+            <h1 className="font-display-lg text-4xl text-primary">LuxeStay</h1>
+          </Link>
+          <h2 className="mt-6 text-center font-headline-sm text-2xl text-on-surface">
+            Welcome back
+          </h2>
+          <p className="mt-2 text-center text-on-surface-variant">
+            Sign in to your account
+          </p>
+        </div>
+
+        {error && (
+          <div className="bg-error-container text-on-error-container px-4 py-3 rounded-lg text-sm border border-error/20">
+            {error}
+          </div>
+        )}
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">
+                Email address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary/50 focus:border-secondary outline-none transition-all bg-surface-container-low"
+                placeholder="admin@luxestay.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary/50 focus:border-secondary outline-none transition-all bg-surface-container-low"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-primary text-on-primary rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-all shadow-lg"
+          >
+            {loading ? 'Signing in...' : 'Sign in'}
+          </button>
+
+          <div className="text-center text-sm text-on-surface-variant">
+            Don't have an account?{' '}
+            <Link href="/register-hotel" className="text-secondary hover:underline font-medium">
               Register your hotel
             </Link>
-          </p>
-        </Card>
+          </div>
+        </form>
       </div>
     </div>
   )
 }
+<div className="text-center text-sm text-on-surface-variant">
+  Don't have an account?{' '}
+  <Link href="/signup" className="text-secondary hover:underline font-medium">
+    Create one
+  </Link>
+</div>

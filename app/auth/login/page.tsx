@@ -25,10 +25,10 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (data.success) {
-        localStorage.setItem('token', data.data.token)
-        document.cookie = `token=${data.data.token}; path=/; max-age=604800`
-        
-        const payload = JSON.parse(atob(data.data.token.split('.')[1]))
+        localStorage.setItem('token', data.token)
+        document.cookie = `token=${data.token}; path=/; max-age=604800`
+
+        const payload = JSON.parse(atob(data.token.split('.')[1]))
         if (payload.role === 'admin') {
           router.push('/admin')
         } else if (payload.role === 'hotel_manager') {
@@ -49,61 +49,61 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="max-w-md w-full bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-8 shadow-xl">
-        <div className="text-center mb-8">
-          <h1 className="font-display-lg text-display-lg-mobile text-primary">LuxeStay</h1>
-          <p className="text-on-surface-variant mt-2">Sign in to your account</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+        <div className="text-center">
+          <Link href="/" className="font-display-lg text-4xl text-primary block">LuxeStay</Link>
+          <h2 className="mt-6 font-headline-sm text-2xl text-gray-900">Welcome back</h2>
+          <p className="mt-2 text-gray-600">Sign in to your account</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-error-container text-on-error-container rounded-lg text-sm">
+          <div className="mt-4 bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm border border-red-200">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="font-label-md text-on-surface-variant">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full mt-1 p-3 border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none"
-              placeholder="admin@luxestay.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="font-label-md text-on-surface-variant">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full mt-1 p-3 border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none"
-              placeholder="••••••••"
-              required
-            />
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-gray-50"
+                placeholder="admin@luxestay.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-gray-50"
+                placeholder="••••••••"
+                required
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-on-primary rounded-lg font-label-md hover:opacity-90 disabled:opacity-50 transition-all"
+            className="w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-lg"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
-        </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-on-surface-variant text-sm">
-            Don't have an account?{' '}
-            <Link href="/register-hotel" className="text-secondary hover:underline">
-              Register your hotel
+          <div className="text-center text-sm text-gray-600">
+                  Dont have an account?{' '}
+            <Link href="/auth/register" className="text-emerald-600 hover:underline font-medium">
+              Create one
             </Link>
-          </p>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   )

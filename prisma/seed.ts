@@ -4,31 +4,38 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@luxestay.com'
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123456'
+  console.log('🌱 Seeding database...')
 
-  const existing = await prisma.user.findUnique({ where: { email: adminEmail } })
-  if (existing) {
-    console.log('Admin user already exists:', adminEmail)
-    return
-  }
-
-  const hashed = await bcrypt.hash(adminPassword, 12)
-  await prisma.user.create({
-    data: {
-      email: adminEmail,
-      password: hashed,
-      firstName: 'Platform',
-      lastName: 'Admin',
-      role: 'admin',
-    },
+  // Create admin user
+  const adminEmail = 'admin@luxestay.com'
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
   })
 
-  console.log('Admin user created:')
-  console.log('  Email:', adminEmail)
-  console.log('  Password:', adminPassword)
+  if (!existingAdmin) {
+    const hashedPassword = await bcrypt.hash('admin123', 12)
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        password: hashedPassword,
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'admin',
+      },
+    })
+    console.log('✅ Admin user created: admin@luxestay.com / admin123')
+  } else {
+    console.log('ℹ️ Admin user already exists')
+  }
+
+  console.log('✅ Seeding complete!')
 }
 
 main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect())
+  .catch((e) => {
+    console.error('❌ Seeding failed:', e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })

@@ -1,21 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db/prisma'
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const bookingId = parseInt(params.id)
 
-  return NextResponse.json({
-    success: true,
-    bookingId: id,
-    message: 'Booking detail endpoint is ready.',
-  })
-}
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        guest: true,
+        room: {
+          include: {
+            roomType: {
+              include: {
+                hotel: true,
+              },
+            },
+          },
+        },
+      },
+    })
 
-export async function PATCH(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
 
-  return NextResponse.json({
-    success: true,
-    bookingId: id,
-    message: 'Booking update endpoint is ready.',
-  })
+    return NextResponse.json({ success: true, data: booking })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

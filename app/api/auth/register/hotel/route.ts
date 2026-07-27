@@ -48,14 +48,17 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      const registrationRequest = await tx.hotelRegistrationRequest.create({
+      const registrationRequest = await tx.hotelRegistration.create({
         data: {
-          applicantId: user.id,
+          managerId: user.id,
+          managerEmail: email,
+          managerFirstName: firstName,
+          managerLastName: lastName,
           hotelName,
-          address,
-          city,
-          country,
-          phone,
+          hotelAddress: address,
+          hotelCity: city,
+          hotelCountry: country,
+          hotelPhone: phone,
           description,
           status: 'pending',
         },
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
       userId: result.user.id,
       email: result.user.email,
       role,
-      hotelId: null,
+      hotelId: undefined,
     })
 
     const response = jsonResponse(

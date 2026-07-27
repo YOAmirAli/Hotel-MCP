@@ -133,6 +133,7 @@ function BookingFormContent() {
 
       router.push(`/booking/success?bookingId=${bookingData.data.bookingId}`)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "An error occurred")
     } finally {

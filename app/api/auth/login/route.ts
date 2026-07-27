@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db/prisma'
 import { signToken } from '@/lib/auth/jwt'
-import { loginSchema, registerSchema } from '@/lib/validations/auth.schema'
+import { loginSchema } from '@/lib/validations/auth.schema'
 import { errorResponse, jsonResponse } from '@/lib/utils/helpers'
 
 export async function POST(request: NextRequest) {
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     })
 
     const response = jsonResponse({
+      success: true, // <-- ADDED THIS
       token,
       user: {
         id: user.id,

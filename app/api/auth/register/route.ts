@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
 
     const response = jsonResponse(
       {
+        success: true, // <-- ADDED THIS
         token,
         user: {
           id: user.id,
